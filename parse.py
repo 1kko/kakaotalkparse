@@ -14,6 +14,12 @@ class KakaoTalkParse():
         self.srcTZ = pytz.timezone("Asia/Saigon")
         self.reportTz = pytz.timezone("Asia/Seoul")
 
+        # 2020-01-01 00:00:00부터 현재까지
+        self.reportStart = self.reportTz.localize(
+            datetime(2020, 1, 1, 0, 0, 0))
+        self.reportEnd = self.reportTz.localize(
+            datetime.now())
+
         # global variables
         self._prev_speaker = None
         self._prev_msgTime = None
@@ -157,13 +163,8 @@ class KakaoTalkParse():
                                        "07": 0,  "08": 0,  "09": 0,  "10": 0,  "11": 0, "12": 0,
                                    }
                                    }
-            # 2020-01-01 부터 2020-12-31까지
-            startTime = self.reportTz.localize(datetime(2020, 1, 1, 0, 0, 0))
-            endTime = self.reportTz.localize(
-                datetime(2020, 12, 31, 23, 59, 59))
-
-            if item['msgTime'] >= startTime and item['msgTime'] <= endTime:
-
+            # report range condition
+            if item['msgTime'] >= self.reportStart and item['msgTime'] <= self.reportEnd:
                 retval[speaker]['totalCount'] += 1
                 retval[speaker]['characters'] += len(item['message'])
 
