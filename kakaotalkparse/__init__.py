@@ -1,1 +1,1 @@
-from kakotalkparse.parse import KakaoTalkParse
+from kakaotalkparse.parse import KakaoTalkParse

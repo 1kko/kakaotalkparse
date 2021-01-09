@@ -2,7 +2,7 @@ from distutils.core import setup
 setup(
     name='kakaotalkparse',         # How you named your package folder (MyLib)
     packages=['kakaotalkparse'],   # Chose the same as "name"
-    version='0.1',      # Start with a small number and increase it with every change you make
+    version='0.3.2',      # Start with a small number and increase it with every change you make
     # Chose a license from here: https://help.github.com/articles/licensing-a-repository
     license='MIT',
     # Give a short description about your library
@@ -16,7 +16,7 @@ setup(
     # Keywords that define your package best
     keywords=['kakao', 'kakaotalk', 'parse', 'katalk'],
     install_requires=[            # I get to this in a second
-        'python-datetuil',
+        'python-dateutil',
         'pytz',
     ],
     classifiers=[
@@ -31,5 +31,8 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
     ],
 )

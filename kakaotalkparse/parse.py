@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from dateutil import parser as dateParser  # pip install python-datetuil
+from dateutil import parser as dateParser  # pip install python-datetutil
 import re
 import json
 import pytz
