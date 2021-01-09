@@ -2,7 +2,9 @@
 Parse and Statistics from txt file exported from KakaoTalk.
 
 # Screenshot
-Screenshot: ![github-large](https://github.com/1kko/kakaotalkparse/raw/main/example/screenshot.png)
+![github-large](https://github.com/1kko/kakaotalkparse/raw/main/example/screenshot.png)
+
+Check out [Live Preview!](http://926.1kko.com/kakaotalkparse/example/report.html)
 # Install
 ```
 pip install kakaotalkparse
