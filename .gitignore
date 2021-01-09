@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# exported txt KakaoTalk Chat
+KakaoTalk_*.txt
+
+# stistic exported
+/stats.json
