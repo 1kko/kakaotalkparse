@@ -1,12 +1,18 @@
 from distutils.core import setup
+from os import path
+
+this_directory = path.abspath(path.dirname(__file__))
+with open(path.join(this_directory, 'README.rst'), encoding='utf-8') as f:
+    long_description = f.read()
+
+
 setup(
     name='kakaotalkparse',         # How you named your package folder (MyLib)
     packages=['kakaotalkparse'],   # Chose the same as "name"
-    version='0.3.2',      # Start with a small number and increase it with every change you make
+    version='0.3.3',      # Start with a small number and increase it with every change you make
     # Chose a license from here: https://help.github.com/articles/licensing-a-repository
     license='MIT',
     # Give a short description about your library
-    description='parse exported txt file from kakaotalk group chat',
     author='1kko',                   # Type in your name
     author_email='me@1kko.com',      # Type in your E-Mail
     # Provide either the link to your github or to your website
@@ -14,11 +20,14 @@ setup(
     # I explain this later on
     download_url='https://github.com/1kko/kakaotalkparse/archive/0.1.tar.gz',
     # Keywords that define your package best
-    keywords=['kakao', 'kakaotalk', 'parse', 'katalk'],
+    keywords=['kakao', 'kakaotalk', 'parse',
+              'katalk', 'report', 'analyse', '카톡', '카카오톡'],
     install_requires=[            # I get to this in a second
         'python-dateutil',
         'pytz',
     ],
+    long_description_content_type='text/x-rst',
+    long_description=long_description,
     classifiers=[
         # Chose either "3 - Alpha", "4 - Beta" or "5 - Production/Stable" as the current state of your package
         'Development Status :: 3 - Alpha',

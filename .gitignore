@@ -133,3 +133,5 @@ KakaoTalk_*.txt
 
 # stistic exported
 /stats.json
+
+*.bat
