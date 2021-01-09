@@ -4,7 +4,7 @@ setup(
     packages=['kakaotalkparse'],   # Chose the same as "name"
     version='0.1',      # Start with a small number and increase it with every change you make
     # Chose a license from here: https://help.github.com/articles/licensing-a-repository
-    license='GNU General Public License v3.0',
+    license='MIT',
     # Give a short description about your library
     description='parse exported txt file from kakaotalk group chat',
     author='1kko',                   # Type in your name
@@ -25,7 +25,7 @@ setup(
         # Define that your audience are developers
         'Intended Audience :: Developers',
         'Topic :: Software Development :: Build Tools',
-        'License :: OSI Approved :: GNU General Public License v3.0',   # Again, pick a license
+        'License :: OSI Approved :: MIT License',   # Again, pick a license
         # Specify which pyhton versions that you want to support
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
