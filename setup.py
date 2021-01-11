@@ -9,7 +9,7 @@ with open(path.join(this_directory, 'README.rst'), encoding='utf-8') as f:
 setup(
     name='kakaotalkparse',         # How you named your package folder (MyLib)
     packages=['kakaotalkparse'],   # Chose the same as "name"
-    version='0.3.4',      # Start with a small number and increase it with every change you make
+    version='0.4',      # Start with a small number and increase it with every change you make
     # Chose a license from here: https://help.github.com/articles/licensing-a-repository
     license='MIT',
     # Give a short description about your library
