@@ -26,17 +26,21 @@
         <div class="row justify-content-center"><h4 id='pageSubtitle'></h4></div>
         <hr>
         <div class="row pb-5">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <h3 class="text-center">전체 채팅 횟수</h3>
                 <canvas id="totalCount"></canvas>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <h3 class="text-center">URL 공유 횟수</h3>
                 <canvas id="urls"></canvas>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <h3 class="text-center">사진 공유 횟수</h3>
                 <canvas id="photos"></canvas>
+            </div>
+            <div class="col-md-3">
+                <h3 class="text-center">메세지 삭제 횟수</h3>
+                <canvas id="deletes"></canvas>
             </div>
         </div>
         <div class="row pb-5">
@@ -137,7 +141,7 @@
             
             
         $(document).ready(function() {
-            $.getJSON("stats.json", function(result) {
+            $.getJSON("report.json", function(result) {
                 statistics=result;
             }).then(function() {
                 info=statistics.reportInfo
@@ -147,6 +151,7 @@
                 drawChart('totalCount', type='pie', legend_display=false, stacked=true)
                 drawChart('urls', type='pie', legend_display=false, stacked=true)
                 drawChart('photos', type='pie', legend_display=false, stacked=true)
+                drawChart('deletes', type='pie', legend_display=false, stacked=true)
 
                 drawChart('activeHour', type='bar', legend_display=false, stacked=true)
                 drawChart('activeWeek', type='line', legend_display=false, stacked=true)
