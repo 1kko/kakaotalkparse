@@ -133,6 +133,6 @@ KakaoTalk_*.txt
 Talk_*[0-9].txt
 
 # stistic exported
-/stats.json
+/report.json
 
 *.bat

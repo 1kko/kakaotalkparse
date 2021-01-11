@@ -79,6 +79,7 @@ class KakaoTalkParse():
         speaker = None
         timeStr = None
         item = re.search(r'^\[(.*)\]\ \[(.*[0-9]+:[0-9][0-9])\]\ (.*)\n', line)
+        message = None
         if item is not None:
             speaker = item.group(1)
             timeStr = item.group(2)
@@ -135,8 +136,10 @@ class KakaoTalkParse():
         """
         Set date range
         """
-        self.reportStart = self.reportTz.localize(dateParser.parse(startTime))
-        self.reportEnd = self.reportTz.localize(dateParser.parse(endTime))
+        self.reportStart = self.reportTz.localize(
+            dateParser.parse(startTime + " " + "00:00:00.000"))
+        self.reportEnd = self.reportTz.localize(
+            dateParser.parse(endTime + " " + "23:59:59.999"))
 
     def setSrcTZ(self, timezone="Asia/Seoul"):
         self.srcTZ = pytz.timezone(timezone)
@@ -175,14 +178,19 @@ class KakaoTalkParse():
         """
 
         for item in chatData:
+            if item['msgTime'] is not None:
+                # convert and replace to reportTz timezone
+                item['msgTime'] = item['msgTime'].astimezone(self.reportTz)
+
             # report range condition
-            if item['msgTime'] is not None and item['msgTime'] >= self.reportStart and item['msgTime'] <= self.reportEnd:
+            if item['msgTime'] >= self.reportStart and item['msgTime'] <= self.reportEnd:
+                # print(f"{self.reportStart} <= {item['msgTime']} >= {self.reportEnd}")
 
                 speaker = item['speaker']
                 if speaker not in retval.keys():
                     # initialize speaker
                     retval[speaker] = {
-                        'totalCount': 0, 'characters': 0, 'urls': 0, 'photos': 0, 'files': 0, 'videos': 0, 'emoticons': 0,
+                        'totalCount': 0, 'characters': 0, 'urls': 0, 'photos': 0, 'files': 0, 'videos': 0, 'emoticons': 0, 'deletes': 0,
                         'activeHour': {
                             "00": 0,  "01": 0,  "02": 0,  "03": 0,  "04": 0,  "05": 0,
                             "06": 0,  "07": 0,  "08": 0,  "09": 0,  "10": 0,  "11": 0,
@@ -213,24 +221,23 @@ class KakaoTalkParse():
                     for activeDay in activeDaysKeys:
                         retval[speaker]['activeDays'][activeDay] = 0
 
-                    # report range condition
+                else:
+                    # message counter
                     retval[speaker]['totalCount'] += 1
-                    retval[speaker]['characters'] += len(item['message'])
-
                     if item['message'].find("http://") >= 0 or item['message'].find("https://") >= 0:
                         retval[speaker]['urls'] += 1
-
-                    if item['message'] == "사진":
+                    elif item['message'] == "사진":
                         retval[speaker]['photos'] += 1
-
-                    if item['message'] == "동영상":
+                    elif item['message'] == "동영상":
                         retval[speaker]['videos'] += 1
-
-                    if item['message'] == "이모티콘":
+                    elif item['message'] == "이모티콘":
                         retval[speaker]['emoticons'] += 1
-
-                    if item['message'].startswith("파일: "):
+                    elif item['message'].startswith("파일: "):
                         retval[speaker]['files'] += 1
+                    elif item['message'] == "삭제된 메시지입니다.":
+                        retval[speaker]['deletes'] += 1
+                    else:
+                        retval[speaker]['characters'] += len(item['message'])
 
                     hourKey = item['msgTime'].strftime("%H")
                     retval[speaker]['activeHour'][hourKey] += 1
@@ -276,8 +283,12 @@ class KakaoTalkParse():
             ("yellow", "rgba(255, 205, 86, 0.5)")
         ]
 
+        # return if nothing inside
+        if stats == {}:
+            return retval
+
         # totalCount, characters, urls, photos, files, videos, emoticons
-        for category in ['totalCount', 'characters', 'urls', 'photos', 'files', 'videos', 'emoticons']:
+        for category in ['totalCount', 'characters', 'urls', 'photos', 'files', 'videos', 'emoticons', 'deletes']:
             retval[category] = {
                 'labels': [],
                 'datasets': []
@@ -320,13 +331,11 @@ class KakaoTalkParse():
                     'borderWidth': 1,
                 }
                 retval[category]['datasets'].append(p)
-
-        with open('stats.json', 'w', encoding='utf-8') as fp:
-            json.dump(retval, fp, ensure_ascii=False, indent=4)
-        return json.dumps(retval)
+        return retval
 
 
 if __name__ == '__main__':
+    """Example Code"""
     ktparse = KakaoTalkParse()
     filename = "KakaoTalk_20210108_0846_18_555_group.txt"
     # filename = "Talk_2021.1.10 08_15-1.txt"
@@ -337,8 +346,11 @@ if __name__ == '__main__':
 
     ktparse.setSrcTZ("Asia/Saigon")
     ktparse.setReportTz("Asia/Seoul")
-    ktparse.setReportRange(startTime='2019-12-21', endTime='2019-12-31')
-    stats = ktparse.stats(data)
+    ktparse.setReportRange(startTime='2020-1-1', endTime='2020-12-31')
 
-    json = ktparse.conv2chartJS(stats)
-    # print(json)
+    stats = ktparse.stats(data)
+    report = ktparse.conv2chartJS(stats)
+    with open('report.json', 'w', encoding='utf-8') as fp:
+        json.dump(report, fp, ensure_ascii=False, indent=0)
+
+    print(json.dumps(report))
