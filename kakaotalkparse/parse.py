@@ -31,8 +31,12 @@ class KakaoTalkParse():
         한글 형식 날짜를 읽어서 datetime 형식으로 변환한다.
         """
         datestring = line.replace("년 ", "-").replace("월 ",
-                                                     "-").replace("일", " ").split(" ")[1]
-        return datetime.strptime(datestring, "%Y-%m-%d").date()
+                                                     "-").replace("일", " ").split(" ")
+        try:
+            dateDate = datetime.strptime(datestring[1], "%Y-%m-%d").date()
+        except:
+            dateDate = datetime.strptime(datestring[0], "%Y-%m-%d").date()
+        return dateDate
 
     def _generateDateIndex(self, contents):
         """
@@ -44,6 +48,8 @@ class KakaoTalkParse():
         cnt = 1  # lineno starts from 1
         for line in contents:
             if line.startswith("--------------- ") and line.endswith(" ---------------\r\n"):
+                index.append({'date': self._parse_day(line), 'lineStart': cnt})
+            elif re.search(r'(^[0-9][0-9][0-9][0-9])년\ ([0-9]+)월\ ([0-9]+)일\ (.)요일\r\n$', line):
                 index.append({'date': self._parse_day(line), 'lineStart': cnt})
             cnt += 1
 
@@ -60,33 +66,49 @@ class KakaoTalkParse():
 
     def _parseLine(self, baseDate, line):
         """
-        "[어피치] [오후 10:38] ㄷㄷㄷ" 을 regex를 이용하여 이름, 시간, 내용으로 변환하고,
+        line을 regex를 이용하여 이름, 시간, 내용으로 변환하고,
         baseDate를 기준으로 날짜+시간을 생성한다.
+
+        Type1 Line:
+        "[어피치] [오후 10:38] ㄷㄷㄷ"
+
+        Type2 Line:
+        "2019. 12. 22. 오후 2:22, 산들바람 : 컴퓨터 키보드 사이사이에 낀 먼지를 바람으로 청소하는 에어 스프레이 같은거 어디서 살 수 있을까요?"
+
         """
-        item = re.search(r'^\[(.*)\]\ \[(.*[0-9:]+)\]\ (.*)\n', line)
-        try:
+        speaker = None
+        timeStr = None
+        item = re.search(r'^\[(.*)\]\ \[(.*[0-9]+:[0-9][0-9])\]\ (.*)\n', line)
+        if item is not None:
+            speaker = item.group(1)
+            timeStr = item.group(2)
+            message = item.group(3).replace("\r", "").replace("\n", "")
+
+        if item is None:
+            item = re.search(
+                r'(^[0-9]+.*\ .*\.)\ (.*[0-9]), (.*) : (.*$)', line)
             if item is not None:
-                speaker = item.group(1)
+                speaker = item.group(3)
                 timeStr = item.group(2)
-                if timeStr.startswith("오전"):
-                    timeStr = timeStr.replace("오전 ", "")+" AM"
-                elif timeStr.startswith("오후"):
-                    timeStr = timeStr.replace("오후 ", "")+" PM"
-                msgTime = dateParser.parse(baseDate.strftime(
-                    "%Y-%m-%d ")+timeStr)
-                msgTime = self.srcTZ.localize(msgTime)
+                baseDate = dateParser.parse(item.group(1))
+                message = item.group(4).replace("\r", "").replace("\n", "")
 
-                message = item.group(3).replace("\r", "").replace("\n", "")
+        if speaker is not None and timeStr is not None:
+            # Convert timeStr to datetime
+            if timeStr.startswith("오전"):
+                timeStr = timeStr.replace("오전 ", "")+" AM"
+            elif timeStr.startswith("오후"):
+                timeStr = timeStr.replace("오후 ", "")+" PM"
+            msgTime = dateParser.parse(baseDate.strftime(
+                "%Y-%m-%d ")+timeStr)
+            msgTime = self.srcTZ.localize(msgTime)
 
-                self._prev_speaker = speaker
-                self._prev_msgTime = msgTime
-                return {"speaker": speaker, "msgTime": msgTime, "message": message}
-            else:
-                message = line.replace("\r", "").replace("\n", "")
-                return {"type": "append", "speaker": self._prev_speaker, "msgTime": self._prev_msgTime, "message": message}
-        except:
+            self._prev_speaker = speaker
+            self._prev_msgTime = msgTime
+            return {"speaker": speaker, "msgTime": msgTime, "message": message}
+        else:
             message = line.replace("\r", "").replace("\n", "")
-            return {"type": "exception", "speaker": self._prev_speaker, "msgTime": self._prev_msgTime, "message": message}
+            return {"type": "append", "speaker": self._prev_speaker, "msgTime": self._prev_msgTime, "message": message}
 
     def _generateMessageIndex(self, indexItem, contents):
         cnt = indexItem['lineStart']
@@ -153,74 +175,76 @@ class KakaoTalkParse():
         """
 
         for item in chatData:
-            speaker = item['speaker']
-            if speaker not in retval.keys():
-                # initialize speaker
-                retval[speaker] = {
-                    'totalCount': 0, 'characters': 0, 'urls': 0, 'photos': 0, 'files': 0, 'videos': 0, 'emoticons': 0,
-                    'activeHour': {
-                        "00": 0,  "01": 0,  "02": 0,  "03": 0,  "04": 0,  "05": 0,
-                        "06": 0,  "07": 0,  "08": 0,  "09": 0,  "10": 0,  "11": 0,
-                        "12": 0,  "13": 0,  "14": 0,  "15": 0,  "16": 0,  "17": 0,
-                        "18": 0,  "19": 0,  "20": 0,  "21": 0,  "22": 0,  "23": 0,
-                    },
-                    'activeWeek': {
-                        "Mon": 0,
-                        "Tue": 0,
-                        "Wed": 0,
-                        "Thu": 0,
-                        "Fri": 0,
-                        "Sat": 0,
-                        "Sun": 0,
-                    },
-                    'activeMonth': {
-                        "Jan": 0,  "Feb": 0,  "Mar": 0,  "Apr": 0,  "May": 0, "Jun": 0,
-                        "Jul": 0,  "Aug": 0,  "Sep": 0,  "Oct": 0,  "Nov": 0, "Dec": 0,
-                    },
-                    'activeDays': {
-                    }
-                }
-
-                activeDaysList = [self.reportStart + timedelta(days=x) for x in range(
-                    0, (self.reportEnd-self.reportStart).days)]
-                activeDaysKeys = [x.strftime("%Y-%m-%d")
-                                  for x in activeDaysList]
-                for activeDay in activeDaysKeys:
-                    retval[speaker]['activeDays'][activeDay] = 0
-
             # report range condition
-            if item['msgTime'] >= self.reportStart and item['msgTime'] <= self.reportEnd:
-                retval[speaker]['totalCount'] += 1
-                retval[speaker]['characters'] += len(item['message'])
+            if item['msgTime'] is not None and item['msgTime'] >= self.reportStart and item['msgTime'] <= self.reportEnd:
 
-                if item['message'].find("http://") >= 0 or item['message'].find("https://") >= 0:
-                    retval[speaker]['urls'] += 1
+                speaker = item['speaker']
+                if speaker not in retval.keys():
+                    # initialize speaker
+                    retval[speaker] = {
+                        'totalCount': 0, 'characters': 0, 'urls': 0, 'photos': 0, 'files': 0, 'videos': 0, 'emoticons': 0,
+                        'activeHour': {
+                            "00": 0,  "01": 0,  "02": 0,  "03": 0,  "04": 0,  "05": 0,
+                            "06": 0,  "07": 0,  "08": 0,  "09": 0,  "10": 0,  "11": 0,
+                            "12": 0,  "13": 0,  "14": 0,  "15": 0,  "16": 0,  "17": 0,
+                            "18": 0,  "19": 0,  "20": 0,  "21": 0,  "22": 0,  "23": 0,
+                        },
+                        'activeWeek': {
+                            "Mon": 0,
+                            "Tue": 0,
+                            "Wed": 0,
+                            "Thu": 0,
+                            "Fri": 0,
+                            "Sat": 0,
+                            "Sun": 0,
+                        },
+                        'activeMonth': {
+                            "Jan": 0,  "Feb": 0,  "Mar": 0,  "Apr": 0,  "May": 0, "Jun": 0,
+                            "Jul": 0,  "Aug": 0,  "Sep": 0,  "Oct": 0,  "Nov": 0, "Dec": 0,
+                        },
+                        'activeDays': {
+                        }
+                    }
 
-                if item['message'] == "사진":
-                    retval[speaker]['photos'] += 1
+                    activeDaysList = [self.reportStart + timedelta(days=x) for x in range(
+                        0, (self.reportEnd-self.reportStart).days)]
+                    activeDaysKeys = [x.strftime("%Y-%m-%d")
+                                      for x in activeDaysList]
+                    for activeDay in activeDaysKeys:
+                        retval[speaker]['activeDays'][activeDay] = 0
 
-                if item['message'] == "동영상":
-                    retval[speaker]['videos'] += 1
+                    # report range condition
+                    retval[speaker]['totalCount'] += 1
+                    retval[speaker]['characters'] += len(item['message'])
 
-                if item['message'] == "이모티콘":
-                    retval[speaker]['emoticons'] += 1
+                    if item['message'].find("http://") >= 0 or item['message'].find("https://") >= 0:
+                        retval[speaker]['urls'] += 1
 
-                if item['message'].startswith("파일: "):
-                    retval[speaker]['files'] += 1
+                    if item['message'] == "사진":
+                        retval[speaker]['photos'] += 1
 
-                hourKey = item['msgTime'].strftime("%H")
-                retval[speaker]['activeHour'][hourKey] += 1
+                    if item['message'] == "동영상":
+                        retval[speaker]['videos'] += 1
 
-                weekKey = item['msgTime'].strftime("%a")
-                retval[speaker]['activeWeek'][weekKey] += 1
+                    if item['message'] == "이모티콘":
+                        retval[speaker]['emoticons'] += 1
 
-                monthKey = item['msgTime'].strftime("%b")
-                retval[speaker]['activeMonth'][monthKey] += 1
+                    if item['message'].startswith("파일: "):
+                        retval[speaker]['files'] += 1
 
-                dayKey = item['msgTime'].strftime("%Y-%m-%d")
-                if dayKey not in retval[speaker]['activeDays'].keys():
-                    retval[speaker]['activeDays'][dayKey] = 0
-                retval[speaker]['activeDays'][dayKey] += 1
+                    hourKey = item['msgTime'].strftime("%H")
+                    retval[speaker]['activeHour'][hourKey] += 1
+
+                    weekKey = item['msgTime'].strftime("%a")
+                    retval[speaker]['activeWeek'][weekKey] += 1
+
+                    monthKey = item['msgTime'].strftime("%b")
+                    retval[speaker]['activeMonth'][monthKey] += 1
+
+                    dayKey = item['msgTime'].strftime("%Y-%m-%d")
+                    if dayKey not in retval[speaker]['activeDays'].keys():
+                        retval[speaker]['activeDays'][dayKey] = 0
+                    retval[speaker]['activeDays'][dayKey] += 1
 
         return retval
 
@@ -229,7 +253,8 @@ class KakaoTalkParse():
             'reportInfo': {
                 'reportStart': self.reportStart.strftime("%Y-%m-%d"),
                 'reportEnd': self.reportEnd.strftime("%Y-%m-%d"),
-                'reportTZ': self.reportTz.zone
+                'reportTZ': self.reportTz.zone,
+                'reportSpeakers': len(stats.keys()),
             },
         }
         borderColors = [
@@ -304,19 +329,16 @@ class KakaoTalkParse():
 if __name__ == '__main__':
     ktparse = KakaoTalkParse()
     filename = "KakaoTalk_20210108_0846_18_555_group.txt"
+    # filename = "Talk_2021.1.10 08_15-1.txt"
 
     ktparse.open(filename)
+    data = ktparse.parse()
+    # print(data)
 
     ktparse.setSrcTZ("Asia/Saigon")
     ktparse.setReportTz("Asia/Seoul")
-    ktparse.setReportRange(startTime='2020-01-01', endTime='2020-12-31')
-
-    data = ktparse.parse()
+    ktparse.setReportRange(startTime='2019-12-21', endTime='2019-12-31')
     stats = ktparse.stats(data)
 
-    # print(stats)
-    # for speaker in stats.keys():
-    #     print(f"{speaker}: {stats[speaker]}")
-
     json = ktparse.conv2chartJS(stats)
-    print(json)
+    # print(json)
